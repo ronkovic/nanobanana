@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+logs/
+*.log
+
+# Node/npm (just in case)
+node_modules/
+
+# Python caches (if any)
+__pycache__/
+*.pyc
+
+# Temporary/editor
+*.swp
+*.swo
+*.tmp
+.idea/
+.vscode/
+
+# Script artifacts
+request.json
+request_image_only.json
+output.txt
+output_image_only.txt
+
+# Curl traces
+trace-*.log
+
+# Generated images
+output.*
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
