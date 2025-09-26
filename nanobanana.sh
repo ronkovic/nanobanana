@@ -382,8 +382,13 @@ fi
 # 注意: -c でスクリプトを渡し、ユーザー入力はパイプ経由でstdinから渡す
 ESCAPED_TEXT=$(printf '%s' "$USER_TEXT" | python3 -c 'import sys,json; s=sys.stdin.read(); print(json.dumps(s)[1:-1])')
 
+# 出力ベースディレクトリ（request.json 生成前に必ず初期化）
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+OUTPUT_BASE_DIR="${SCRIPT_DIR}/output"
+mkdir -p "$OUTPUT_BASE_DIR" 2>/dev/null || true
+
 # リクエストボディを作成
-cat << EOF > request.json
+cat << EOF > "${OUTPUT_BASE_DIR}/request.json"
 {
     "contents": [
       {
@@ -401,16 +406,14 @@ cat << EOF > request.json
     }
 }
 EOF
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # レスポンス保存先（--save-response 指定があればそれを使用）
 if [ -n "$SAVE_RESPONSE_ARG" ]; then
   case "$SAVE_RESPONSE_ARG" in
     /*) OUTPUT_FILE="$SAVE_RESPONSE_ARG" ;;
-    *) OUTPUT_FILE="${SCRIPT_DIR}/$SAVE_RESPONSE_ARG" ;;
+    *) OUTPUT_FILE="${OUTPUT_BASE_DIR}/$SAVE_RESPONSE_ARG" ;;
   esac
 else
-  OUTPUT_FILE="${SCRIPT_DIR}/output.txt"
+  OUTPUT_FILE="${OUTPUT_BASE_DIR}/output.txt"
 fi
 # 保存先ディレクトリ作成
 RESP_DIR="$(dirname "$OUTPUT_FILE")"
@@ -431,7 +434,7 @@ HTTP_CODE=$(curl -sS $CURLOPT_VERBOSE "${CURL_TRACE_ARGS[@]}" \
   -X POST \
   -H "Content-Type: application/json" \
   "https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:${GENERATE_CONTENT_API}?key=${GEMINI_API_KEY}" \
-  -d '@request.json' \
+  -d "@${OUTPUT_BASE_DIR}/request.json" \
   --max-time "$TIMEOUT_SEC" \
   --retry "$RETRY_COUNT" \
   --retry-delay "$RETRY_DELAY" \
@@ -458,7 +461,7 @@ fi
 if ! grep -q '"inlineData"' "$OUTPUT_FILE"; then
   echo "情報: inlineData ブロックが見つかりませんでした。画像専用で再リクエストします..."
   # フォールバック: 画像専用のレスポンスを要求
-  cat << EOF_IMG > request_image_only.json
+  cat << EOF_IMG > "${OUTPUT_BASE_DIR}/request_image_only.json"
 {
     "contents": [
       {
@@ -477,12 +480,12 @@ if ! grep -q '"inlineData"' "$OUTPUT_FILE"; then
 }
 EOF_IMG
 
-  OUTPUT_FILE_IMG_ONLY="${SCRIPT_DIR}/output_image_only.txt"
+  OUTPUT_FILE_IMG_ONLY="${OUTPUT_BASE_DIR}/output_image_only.txt"
   curl -sS \
     -X POST \
     -H "Content-Type: application/json" \
     "https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:${GENERATE_CONTENT_API}?key=${GEMINI_API_KEY}" \
-    -d '@request_image_only.json' \
+    -d "@${OUTPUT_BASE_DIR}/request_image_only.json" \
     -o "$OUTPUT_FILE_IMG_ONLY"
 
   if [ ! -s "$OUTPUT_FILE_IMG_ONLY" ]; then
@@ -543,20 +546,20 @@ esac
 if [ -n "$OUT_IMAGE_ARG" ]; then
   case "$OUT_IMAGE_ARG" in
     /*) OUT_IMAGE="$OUT_IMAGE_ARG" ;;
-    *) OUT_IMAGE="${SCRIPT_DIR}/$OUT_IMAGE_ARG" ;;
+    *) OUT_IMAGE="${OUTPUT_BASE_DIR}/$OUT_IMAGE_ARG" ;;
   esac
 else
   if [ "$NO_PROMPT_OUT" = true ]; then
-    OUT_IMAGE="${SCRIPT_DIR}/output.${FIRST_EXT}"
+    OUT_IMAGE="${OUTPUT_BASE_DIR}/output.${FIRST_EXT}"
   else
     read -r -p "出力画像のファイル名を入力してください（任意・空で output.${FIRST_EXT}）: " OUT_IMAGE_USER
     if [ -n "$OUT_IMAGE_USER" ]; then
       case "$OUT_IMAGE_USER" in
         /*) OUT_IMAGE="$OUT_IMAGE_USER" ;;
-        *) OUT_IMAGE="${SCRIPT_DIR}/$OUT_IMAGE_USER" ;;
+        *) OUT_IMAGE="${OUTPUT_BASE_DIR}/$OUT_IMAGE_USER" ;;
       esac
     else
-      OUT_IMAGE="${SCRIPT_DIR}/output.${FIRST_EXT}"
+      OUT_IMAGE="${OUTPUT_BASE_DIR}/output.${FIRST_EXT}"
     fi
   fi
 fi

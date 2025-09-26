@@ -1,5 +1,8 @@
 # nanobanana.sh
 
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Shell](https://img.shields.io/badge/shell-bash-blue.svg)
+
 Shell script to call Google Gemini API (Generative Language API) for multimodal requests.
 
 ## Features
@@ -12,6 +15,11 @@ Shell script to call Google Gemini API (Generative Language API) for multimodal 
 - Options for output filename, response path, timeouts, retries
 - Structured logging (text/JSON), file logging, log rotation
 - cURL traces for deep debugging
+
+> Security Note
+>
+> - This tool logs the presence of `GEMINI_API_KEY`. By default, it is masked in logs.
+> - If you pass `--show-api-key-full`, your API key will be printed in full. Use this option with extreme caution (avoid CI logs, shared terminals, recording screens).
 
 ## Requirements
 - macOS / zsh
@@ -53,9 +61,20 @@ bash nanobanana.sh --log-json --log-file logs/run.jsonl --log-rotate-size 102400
 
 # Deep debugging
 bash nanobanana.sh --log-level debug --curl-trace-ascii logs/trace-ascii.log
+
+# No prompt for output name, timeout/retry tuned
+bash nanobanana.sh --no-prompt-out --timeout 90 --retry 3 --retry-delay 2
+
+# Save all images with a custom base name and also store response
+bash nanobanana.sh --out images/banana.png --save-response logs/resp.txt --log-level info
+
 ```
 
 ## Notes
 - Response file is overwritten each run.
 - If no inlineData is found, the script re-requests with IMAGE-only modalities.
 - Without `jq`, the script saves only the last image and prints an installation hint.
+
+## License
+
+MIT License. See `LICENSE`.
